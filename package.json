@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "install:all": "npm run install:server && npm run install:client",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
   },
   "repository": {
     "type": "git",
@@ -17,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/MadScie254/New_Project/issues"
   },
-  "homepage": "https://github.com/MadScie254/New_Project#readme"
+  "homepage": "https://github.com/MadScie254/New_Project#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

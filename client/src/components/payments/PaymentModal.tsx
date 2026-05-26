@@ -92,13 +92,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMsg('');
     
     try {
-      const response = await api.post('/mpesa/stkpush', {
-        phone: phone.startsWith('254') || phone.startsWith('0') ? phone : `254${phone}`,
+      const payload: any = {
+        phone: phone.startsWith('254') ? phone : phone.startsWith('0') ? `254${phone.substring(1)}` : `254${phone}`,
         amount,
-        chama_id: chamaId,
-        payment_type: paymentType,
-        reference_id: referenceId
-      });
+        accountRef: `Chama ${chamaId.substring(0, 8)}`,
+      };
+
+      if (paymentType === 'CONTRIBUTION') {
+        payload.contributionId = referenceId;
+      } else {
+        payload.repaymentId = referenceId;
+      }
+
+      const response = await api.post('/mpesa/stkpush', payload);
 
       setCheckoutRequestId(response.data.checkout_request_id);
     } catch (error: any) {

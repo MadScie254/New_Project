@@ -9,16 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Download, CreditCard, ChevronDown, CheckCircle2, Clock } from 'lucide-react';
+import { Download, CreditCard, ChevronDown, Wallet } from 'lucide-react';
+import PaymentModal from '../../components/payments/PaymentModal';
 
 const ContributionsPage: React.FC = () => {
   const { activeChama } = useChamaStore();
   const { user } = useAuthStore();
   const [cycles, setCycles] = useState<ContributionCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedCycleId, setSelectedCycleId] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
-  useEffect(() => {
-    const fetchCycles = async () => {
+  const fetchCycles = async () => {
       if (!activeChama) return;
       setIsLoading(true);
       try {
@@ -33,6 +36,12 @@ const ContributionsPage: React.FC = () => {
 
     fetchCycles();
   }, [activeChama]);
+
+  const handleMakePayment = (cycle: ContributionCycle) => {
+    setSelectedCycleId(cycle.id);
+    setPaymentAmount(cycle.amount);
+    setIsPaymentModalOpen(true);
+  };
 
   const handleExport = (type: 'pdf' | 'excel') => {
     if (!cycles.length) return;
@@ -97,11 +106,12 @@ const ContributionsPage: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             PDF
           </Button>
-          {/* We'll implement PaymentModal separately */}
-          <Button size="sm" className="bg-primary hover:bg-primary/90">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Make Payment
-          </Button>
+          {cycles.length > 0 && cycles[0].status === 'OPEN' && (
+            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => handleMakePayment(cycles[0])}>
+              <CreditCard className="w-4 h-4 mr-2" />
+              Make Payment
+            </Button>
+          )}
         </div>
       </div>
 
@@ -203,6 +213,21 @@ const ContributionsPage: React.FC = () => {
           })
         )}
       </div>
+
+      {isPaymentModalOpen && activeChama && user && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          amount={paymentAmount}
+          paymentType="CONTRIBUTION"
+          referenceId={selectedCycleId}
+          chamaId={activeChama.id}
+          defaultPhone={user.phone}
+          onSuccess={() => {
+            fetchCycles();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -3,8 +3,8 @@ import { useChamaStore } from '../../store/chama.store';
 import { useAuthStore } from '../../store/auth.store';
 import api from '../../lib/api';
 import { ContributionCycle, Contribution } from '../../types';
-import { formatKES, formatDate } from '../../lib/formatters';
-import { exportToPDF, exportToExcel } from '../../lib/export';
+import { formatKES, formatDate, getInitials } from '../../lib/formatters';
+import { exportToPDF, exportToExcel, exportToCSV } from '../../lib/export';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -22,28 +22,29 @@ const ContributionsPage: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
   const fetchCycles = async () => {
-      if (!activeChama) return;
-      setIsLoading(true);
-      try {
-        const response = await api.get(`/chamas/${activeChama.id}/cycles`);
-        setCycles(response.data);
-      } catch (error) {
-        console.error('Failed to fetch contribution cycles', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!activeChama) return;
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/chamas/${activeChama.id}/cycles`);
+      setCycles(response.data);
+    } catch (error) {
+      console.error('Failed to fetch contribution cycles', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCycles();
   }, [activeChama]);
 
-  const handleMakePayment = (cycle: ContributionCycle) => {
-    setSelectedCycleId(cycle.id);
+  const handleMakePayment = (cycle: ContributionCycle, contributionId: string) => {
+    setSelectedCycleId(contributionId);
     setPaymentAmount(cycle.amount);
     setIsPaymentModalOpen(true);
   };
 
-  const handleExport = (type: 'pdf' | 'excel') => {
+  const handleExport = (type: 'pdf' | 'excel' | 'csv') => {
     if (!cycles.length) return;
     
     // Flatten data for export
@@ -72,8 +73,10 @@ const ContributionsPage: React.FC = () => {
           { header: 'Paid On', dataKey: 'PaidOn' },
         ]
       );
-    } else {
+    } else if (type === 'excel') {
       exportToExcel(exportData, 'contributions_report');
+    } else {
+      exportToCSV(exportData, 'contributions_report');
     }
   };
 
@@ -102,15 +105,28 @@ const ContributionsPage: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Excel
           </Button>
+          <Button variant="outline" size="sm" onClick={() => handleExport('csv')} className="hidden sm:flex">
+            <Download className="w-4 h-4 mr-2" />
+            CSV
+          </Button>
           <Button variant="outline" size="sm" onClick={() => handleExport('pdf')}>
             <Download className="w-4 h-4 mr-2" />
             PDF
           </Button>
-          {cycles.length > 0 && cycles[0].status === 'OPEN' && (
-            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => handleMakePayment(cycles[0])}>
-              <CreditCard className="w-4 h-4 mr-2" />
-              Make Payment
-            </Button>
+          {cycles.length > 0 && cycles[0].status === 'OPEN' && user && (
+            (() => {
+              const contributions = (cycles[0] as any).contributions as Contribution[];
+              const myContribution = contributions.find(
+                (c) => c.member?.user?.id === user.id || c.member?.user?.phone === user.phone
+              );
+              if (!myContribution || myContribution.status === 'PAID') return null;
+              return (
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => handleMakePayment(cycles[0], myContribution.id)}>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Make Payment
+                </Button>
+              );
+            })()
           )}
         </div>
       </div>
@@ -135,7 +151,9 @@ const ContributionsPage: React.FC = () => {
         ) : (
           cycles.map((cycle) => {
             const contributions = (cycle as any).contributions as Contribution[];
-            const myContribution = contributions.find(c => c.member?.user?.name === user?.name);
+            const myContribution = contributions.find(
+              (c) => c.member?.user?.id === user?.id || c.member?.user?.phone === user?.phone
+            );
             const totalCollected = contributions.reduce((sum, c) => sum + Number(c.amount_paid), 0);
             const progressPercentage = contributions.length > 0 
               ? Math.round((totalCollected / (contributions.length * cycle.amount)) * 100)

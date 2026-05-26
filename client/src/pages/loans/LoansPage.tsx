@@ -21,18 +21,19 @@ const LoansPage: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
   const fetchLoans = async () => {
-      if (!activeChama) return;
-      setIsLoading(true);
-      try {
-        const response = await api.get(`/chamas/${activeChama.id}/loans`);
-        setLoans(response.data);
-      } catch (error) {
-        console.error('Failed to fetch loans', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!activeChama) return;
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/chamas/${activeChama.id}/loans`);
+      setLoans(response.data);
+    } catch (error) {
+      console.error('Failed to fetch loans', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLoans();
   }, [activeChama]);
 
@@ -62,7 +63,9 @@ const LoansPage: React.FC = () => {
 
   if (!activeChama) return null;
 
-  const myLoans = loans.filter(l => l.applicant?.user?.name === user?.name);
+  const myLoans = loans.filter(
+    (l) => l.applicant?.user?.id === user?.id || l.applicant?.user?.phone === user?.phone
+  );
   const activeLoan = myLoans.find(l => ['PENDING', 'APPROVED', 'DISBURSED'].includes(l.status));
 
   return (

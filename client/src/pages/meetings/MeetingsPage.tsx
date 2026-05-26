@@ -13,6 +13,7 @@ const MeetingsPage: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
 
   const getDemoMeetings = (): Meeting[] => [
@@ -57,7 +58,7 @@ const MeetingsPage: React.FC = () => {
     };
 
     fetchMeetings();
-  }, [activeChama]);
+  }, [activeChama, reloadKey]);
 
   if (!activeChama) return null;
 
@@ -88,7 +89,7 @@ const MeetingsPage: React.FC = () => {
             </div>
             <h3 className="text-lg font-semibold text-foreground">Meetings unavailable</h3>
             <p className="text-muted-foreground mt-1">{error}</p>
-            <Button className="mt-4" onClick={() => setMeetings([])}>
+            <Button className="mt-4" onClick={() => setReloadKey((prev) => prev + 1)}>
               Try again
             </Button>
           </CardContent>

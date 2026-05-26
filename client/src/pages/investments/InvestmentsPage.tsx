@@ -13,11 +13,44 @@ const InvestmentsPage: React.FC = () => {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [portfolio, setPortfolio] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+  const getDemoPortfolio = () => ({
+    total_invested: 320000,
+    average_roi: 12,
+    active_count: 3,
+  });
+
+  const getDemoInvestments = (): Investment[] => [
+    {
+      id: 'demo-invest-1',
+      chama_id: activeChama?.id || 'demo-chama',
+      name: 'Treasury Bills',
+      institution: 'CBK',
+      amount: 120000,
+      roi_expected: 11,
+      maturity_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
+      status: 'ACTIVE',
+    },
+    {
+      id: 'demo-invest-2',
+      chama_id: activeChama?.id || 'demo-chama',
+      name: 'Unit Trust',
+      institution: 'CIC',
+      amount: 80000,
+      roi_expected: 10,
+      maturity_date: undefined,
+      status: 'ACTIVE',
+    },
+  ];
 
   useEffect(() => {
     const fetchInvestments = async () => {
       if (!activeChama) return;
       setIsLoading(true);
+      setError('');
       try {
         const [invRes, portRes] = await Promise.all([
           api.get(`/chamas/${activeChama.id}/investments`),
@@ -27,13 +60,19 @@ const InvestmentsPage: React.FC = () => {
         setPortfolio(portRes.data);
       } catch (error) {
         console.error('Failed to fetch investments', error);
+        if (bypassAuth) {
+          setInvestments(getDemoInvestments());
+          setPortfolio(getDemoPortfolio());
+        } else {
+          setError('Unable to load investments. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchInvestments();
-  }, [activeChama]);
+  }, [activeChama, reloadKey]);
 
   if (!activeChama) return null;
 
@@ -57,6 +96,19 @@ const InvestmentsPage: React.FC = () => {
            <Card className="h-64 bg-muted/50 border-none col-span-1" />
            <Card className="h-64 bg-muted/50 border-none col-span-2" />
         </div>
+      ) : error ? (
+        <Card className="border-dashed">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Briefcase className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Investments unavailable</h3>
+            <p className="text-muted-foreground mt-1">{error}</p>
+            <Button className="mt-4" onClick={() => setReloadKey((prev) => prev + 1)}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Portfolio Summary */}

@@ -16,18 +16,63 @@ const LoansPage: React.FC = () => {
   const { user } = useAuthStore();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedLoanId, setSelectedLoanId] = useState<string>('');
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+  const getDemoLoans = (): Loan[] => [
+    {
+      id: 'demo-loan-1',
+      chama_id: activeChama?.id || 'demo-chama',
+      applicant_id: 'demo-member-1',
+      amount: 20000,
+      purpose: 'Stock for shop expansion',
+      status: 'DISBURSED',
+      applied_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+      approved_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
+      disbursed_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
+      interest_rate: 8,
+      repayment_months: 6,
+      applicant: {
+        id: 'demo-member-1',
+        chama_id: activeChama?.id || 'demo-chama',
+        user_id: 'demo-user-1',
+        role: 'MEMBER',
+        joined_at: new Date().toISOString(),
+        is_active: true,
+        voting_rights: true,
+        user: { id: 'demo-user-1', name: 'Grace Wanjiku', phone: '254700111222' },
+      },
+      repayments: [
+        {
+          id: 'demo-repay-1',
+          loan_id: 'demo-loan-1',
+          amount: 3600,
+          due_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString(),
+          paid_at: undefined,
+          mpesa_ref: undefined,
+          status: 'PENDING',
+        },
+      ],
+    },
+  ];
 
   const fetchLoans = async () => {
     if (!activeChama) return;
     setIsLoading(true);
+    setError('');
     try {
       const response = await api.get(`/chamas/${activeChama.id}/loans`);
       setLoans(response.data);
     } catch (error) {
       console.error('Failed to fetch loans', error);
+      if (bypassAuth) {
+        setLoans(getDemoLoans());
+      } else {
+        setError('Unable to load loans. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +136,19 @@ const LoansPage: React.FC = () => {
         <TabsContent value="my-loans" className="space-y-6">
           {isLoading ? (
              <Card className="h-48 animate-pulse bg-muted/50 border-none" />
+          ) : error ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+                  <CreditCard className="w-8 h-8 text-destructive" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Loans unavailable</h3>
+                <p className="text-muted-foreground max-w-sm mt-1">{error}</p>
+                <Button className="mt-4" onClick={fetchLoans}>
+                  Try again
+                </Button>
+              </CardContent>
+            </Card>
           ) : myLoans.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center h-64 text-center">

@@ -48,6 +48,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   // Polling for status when in processing step
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
 
     if (step === 'PROCESSING' && checkoutRequestId) {
       pollInterval = setInterval(async () => {
@@ -57,12 +58,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           // This requires a new endpoint to check status by checkout_request_id
           const response = await api.get(`/mpesa/status/${checkoutRequestId}`);
           
-          if (response.data.status === 'COMPLETED') {
+          if (response.data.status === 'SUCCESS') {
             setStep('SUCCESS');
             clearInterval(pollInterval);
             if (onSuccess) onSuccess();
           } else if (response.data.status === 'FAILED') {
-            setErrorMsg(response.data.message || 'Payment failed or was cancelled.');
+            setErrorMsg(response.data.resultDesc || 'Payment failed or was cancelled.');
             setStep('ERROR');
             clearInterval(pollInterval);
           }
@@ -73,7 +74,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       }, 3000); // Poll every 3 seconds
 
       // Stop polling after 2 minutes (Mpesa timeout)
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (step === 'PROCESSING') {
           clearInterval(pollInterval);
           setErrorMsg('Request timed out. Please check your phone or try again.');
@@ -84,6 +85,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     return () => {
       if (pollInterval) clearInterval(pollInterval);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [step, checkoutRequestId, onSuccess]);
 
@@ -106,7 +108,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
       const response = await api.post('/mpesa/stkpush', payload);
 
-      setCheckoutRequestId(response.data.checkout_request_id);
+      setCheckoutRequestId(response.data.checkoutRequestId);
     } catch (error: any) {
       console.error('STK Push Error:', error);
       setErrorMsg(error.response?.data?.error || 'Failed to initiate payment.');

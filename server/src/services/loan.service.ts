@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { notificationService } from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -56,7 +57,7 @@ export class LoanService {
       },
       include: {
         applicant: {
-          include: { user: { select: { name: true, phone: true } } },
+          include: { user: { select: { id: true, name: true, phone: true } } },
         },
       },
     });
@@ -75,7 +76,7 @@ export class LoanService {
       },
       include: {
         applicant: {
-          include: { user: { select: { name: true, phone: true, photo_url: true } } },
+          include: { user: { select: { id: true, name: true, phone: true, photo_url: true } } },
         },
         repayments: { orderBy: { due_date: 'asc' } },
       },
@@ -92,23 +93,47 @@ export class LoanService {
     if (!loan) throw new Error('Loan not found.');
     if (loan.status !== 'PENDING') throw new Error('Loan is not in pending status.');
 
-    return prisma.loan.update({
+    const updated = await prisma.loan.update({
       where: { id: loanId },
       data: {
         status: 'APPROVED',
         approved_at: new Date(),
       },
+      include: {
+        applicant: { include: { user: { select: { id: true, name: true } } } },
+        chama: { select: { name: true } },
+      },
     });
+
+    await notificationService.notifyUser({
+      userId: updated.applicant.user.id,
+      chamaId: updated.chama_id,
+      message: `Your loan request for KES ${Number(updated.amount).toLocaleString()} has been approved in ${updated.chama.name}.`,
+    });
+
+    return updated;
   }
 
   /**
    * Reject a loan
    */
   async rejectLoan(loanId: string) {
-    return prisma.loan.update({
+    const updated = await prisma.loan.update({
       where: { id: loanId },
       data: { status: 'REJECTED' },
+      include: {
+        applicant: { include: { user: { select: { id: true, name: true } } } },
+        chama: { select: { name: true } },
+      },
     });
+
+    await notificationService.notifyUser({
+      userId: updated.applicant.user.id,
+      chamaId: updated.chama_id,
+      message: `Your loan request in ${updated.chama.name} was rejected.`,
+    });
+
+    return updated;
   }
 
   /**
@@ -146,11 +171,21 @@ export class LoanService {
           status: 'DISBURSED',
           disbursed_at: new Date(),
         },
+        include: {
+          applicant: { include: { user: { select: { id: true, name: true } } } },
+          chama: { select: { name: true } },
+        },
       }),
       ...repayments.map((r) =>
         prisma.loanRepayment.create({ data: r })
       ),
     ]);
+
+    await notificationService.notifyUser({
+      userId: updatedLoan.applicant.user.id,
+      chamaId: updatedLoan.chama_id,
+      message: `Your loan has been disbursed in ${updatedLoan.chama.name}. Amount: KES ${Number(updatedLoan.amount).toLocaleString()}.`,
+    });
 
     return updatedLoan;
   }
@@ -185,6 +220,30 @@ export class LoanService {
       }
     }
 
+    const repaymentLoan = await prisma.loan.findUnique({
+      where: { id: repayment.loan_id },
+      include: {
+        applicant: { include: { user: { select: { id: true, name: true } } } },
+        chama: { select: { name: true } },
+      },
+    });
+
+    if (repaymentLoan) {
+      await notificationService.notifyUser({
+        userId: repaymentLoan.applicant.user.id,
+        chamaId: repaymentLoan.chama_id,
+        message: `Loan repayment received in ${repaymentLoan.chama.name}. Amount: KES ${Number(amount).toLocaleString()}.`,
+      });
+
+      if (repaymentLoan.status === 'REPAID') {
+        await notificationService.notifyUser({
+          userId: repaymentLoan.applicant.user.id,
+          chamaId: repaymentLoan.chama_id,
+          message: `Your loan in ${repaymentLoan.chama.name} is now fully repaid.`,
+        });
+      }
+    }
+
     return repayment;
   }
 
@@ -196,7 +255,7 @@ export class LoanService {
       where: { id: loanId },
       include: {
         applicant: {
-          include: { user: { select: { name: true, phone: true } } },
+          include: { user: { select: { id: true, name: true, phone: true } } },
         },
         repayments: { orderBy: { due_date: 'asc' } },
         chama: { select: { name: true } },
@@ -232,7 +291,7 @@ export class LoanService {
         loan: {
           include: {
             applicant: {
-              include: { user: { select: { name: true, phone: true } } },
+              include: { user: { select: { id: true, name: true, phone: true } } },
             },
           },
         },

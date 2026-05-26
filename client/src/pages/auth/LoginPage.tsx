@@ -13,9 +13,15 @@ const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Keep only numbers and optional leading +
-    const val = e.target.value.replace(/[^\d+]/g, '');
+    const val = e.target.value.replace(/\D/g, '');
     setPhone(val);
+  };
+
+  const normalizePhone = (raw: string) => {
+    if (raw.startsWith('254') && raw.length >= 12) return raw;
+    if (raw.startsWith('0')) return `254${raw.slice(1)}`;
+    if (raw.length === 9) return `254${raw}`;
+    return raw;
   };
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +34,8 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (phone.length < 10) {
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 12) {
       setError('Please enter a valid phone number');
       return;
     }
@@ -40,7 +47,7 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', { phone, pin });
+      const response = await api.post('/auth/login', { phone: normalizedPhone, pin });
       login(response.data.user, response.data.token);
       navigate('/');
     } catch (err: any) {
@@ -83,7 +90,7 @@ const LoginPage: React.FC = () => {
                   id="phone"
                   type="tel"
                   placeholder="712345678"
-                  value={phone.replace(/^(\+?254|0)/, '')}
+                  value={phone.replace(/^(254|0)/, '')}
                   onChange={handlePhoneChange}
                   className="w-full h-10 pl-12 pr-3 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   required
@@ -111,7 +118,7 @@ const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isLoading || pin.length !== 4 || phone.length < 9}
+              disabled={isLoading || pin.length !== 4 || normalizePhone(phone).length !== 12}
               className="w-full h-10 mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors"
             >
               {isLoading ? (

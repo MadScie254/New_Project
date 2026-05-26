@@ -20,11 +20,18 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
 }
 
+const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+const bypassUser: User = {
+  id: 'dev-user',
+  phone: '254700000000',
+  name: 'Dev User',
+};
+
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  token: localStorage.getItem('chama_auth_token'),
-  isAuthenticated: !!localStorage.getItem('chama_auth_token'),
-  isLoading: true,
+  user: bypassAuth ? bypassUser : null,
+  token: bypassAuth ? 'dev-bypass' : localStorage.getItem('chama_auth_token'),
+  isAuthenticated: bypassAuth ? true : !!localStorage.getItem('chama_auth_token'),
+  isLoading: !bypassAuth,
 
   login: (user, token) => {
     localStorage.setItem('chama_auth_token', token);
@@ -37,6 +44,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: async () => {
+    if (bypassAuth) {
+      set({ user: bypassUser, token: 'dev-bypass', isAuthenticated: true, isLoading: false });
+      return;
+    }
+
     const token = get().token;
     if (!token) {
       set({ isLoading: false, isAuthenticated: false });

@@ -11,6 +11,7 @@ const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -55,6 +56,11 @@ const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBypass = () => {
+    login({ id: 'dev-user', phone: '254700000000', name: 'Dev User' }, 'dev-bypass');
+    navigate('/');
   };
 
   return (
@@ -134,7 +140,16 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border bg-muted/20 text-center">
+        <div className="p-4 border-t border-border bg-muted/20 text-center space-y-2">
+          {bypassAuth && (
+            <button
+              type="button"
+              onClick={handleBypass}
+              className="w-full h-9 inline-flex items-center justify-center rounded-md border border-input bg-background text-xs font-medium text-foreground hover:bg-muted"
+            >
+              Skip login (dev)
+            </button>
+          )}
           <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link to="/register" className="font-medium text-primary hover:underline">

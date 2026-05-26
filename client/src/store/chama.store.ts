@@ -37,6 +37,23 @@ export const useChamaStore = create<ChamaState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to fetch chamas:', error);
+      const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+      if (bypassAuth) {
+        const demoChamas: Chama[] = [
+          {
+            id: 'demo-chama',
+            name: 'Demo Chama',
+            description: 'Local demo data while API is offline.',
+            frequency: 'monthly',
+            contribution_amount: 1000,
+            max_members: 20,
+            role: 'TREASURER',
+            member_count: 12,
+          },
+        ];
+        set({ chamas: demoChamas, activeChama: demoChamas[0], isLoading: false });
+        return;
+      }
       set({ isLoading: false });
     }
   },

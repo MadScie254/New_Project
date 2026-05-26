@@ -22,23 +22,76 @@ const DashboardPage: React.FC = () => {
   const { activeChama } = useChamaStore();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+  const getDemoDashboard = (): DashboardData => ({
+    wallet: {
+      balance: 185000,
+      total_contributions: 420000,
+      total_disbursed: 180000,
+      total_repayments: 72000,
+      total_fines: 3500,
+    },
+    monthly_collection: {
+      collected: 86000,
+      expected: 120000,
+      percentage: 72,
+    },
+    active_loans: 3,
+    outstanding_loan_amount: 64000,
+    next_meeting: {
+      id: 'demo-meeting',
+      chama_id: 'demo-chama',
+      scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
+      location: 'Community Hall',
+      agenda: 'Monthly contributions and loan approvals',
+      minutes: undefined,
+      status: 'SCHEDULED',
+    },
+    recent_activity: [
+      {
+        id: 'demo-activity-1',
+        message: 'Grace paid KES 5,000 contribution',
+        created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      },
+      {
+        id: 'demo-activity-2',
+        message: 'Loan approved for KES 20,000',
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      },
+      {
+        id: 'demo-activity-3',
+        message: 'New member joined the chama',
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      },
+    ],
+    member_count: activeChama?.member_count || 12,
+  });
 
   useEffect(() => {
     const fetchDashboard = async () => {
       if (!activeChama) return;
       setIsLoading(true);
+      setError('');
       try {
         const response = await api.get(`/chamas/${activeChama.id}/dashboard`);
         setData(response.data);
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
+        if (bypassAuth) {
+          setData(getDemoDashboard());
+        } else {
+          setError('Unable to load dashboard data. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDashboard();
-  }, [activeChama]);
+  }, [activeChama, reloadKey]);
 
   if (!activeChama) {
     return (
@@ -66,7 +119,36 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  if (!data) return null;
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+          <ArrowDownRight className="w-8 h-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Dashboard unavailable</h2>
+        <p className="text-muted-foreground mb-6 max-w-sm">{error}</p>
+        <button
+          type="button"
+          onClick={() => setReloadKey((prev) => prev + 1)}
+          className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+          <Activity className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-semibold mb-2">No dashboard data</h2>
+        <p className="text-muted-foreground">Start adding contributions and loans to see analytics here.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -7,6 +7,7 @@ export interface Chama {
   description?: string;
   frequency: string;
   contribution_amount: number;
+  max_members?: number;
   role?: string;
   member_count?: number;
 }

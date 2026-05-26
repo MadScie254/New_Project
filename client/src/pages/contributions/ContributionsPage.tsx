@@ -17,18 +17,98 @@ const ContributionsPage: React.FC = () => {
   const { user } = useAuthStore();
   const [cycles, setCycles] = useState<ContributionCycle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedCycleId, setSelectedCycleId] = useState<string>('');
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+  const getDemoCycles = (): ContributionCycle[] => {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7);
+
+    return [
+      {
+        id: 'demo-cycle-1',
+        chama_id: activeChama?.id || 'demo-chama',
+        due_date: dueDate.toISOString(),
+        amount: 1000,
+        status: 'OPEN',
+        cycle_number: 12,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        contributions: [
+          {
+            id: 'demo-contrib-1',
+            cycle_id: 'demo-cycle-1',
+            member_id: 'demo-member-1',
+            amount_paid: 1000,
+            paid_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+            mpesa_ref: 'DEMO123',
+            status: 'PAID',
+            penalty_amount: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            member: {
+              id: 'demo-member-1',
+              chama_id: activeChama?.id || 'demo-chama',
+              user_id: 'demo-user-1',
+              role: 'MEMBER',
+              joined_at: new Date().toISOString(),
+              is_active: true,
+              voting_rights: true,
+              user: {
+                id: 'demo-user-1',
+                name: 'Grace Wanjiku',
+                phone: '254700111222',
+              },
+            },
+          },
+          {
+            id: 'demo-contrib-2',
+            cycle_id: 'demo-cycle-1',
+            member_id: 'demo-member-2',
+            amount_paid: 0,
+            paid_at: undefined,
+            mpesa_ref: undefined,
+            status: 'PENDING',
+            penalty_amount: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            member: {
+              id: 'demo-member-2',
+              chama_id: activeChama?.id || 'demo-chama',
+              user_id: 'demo-user-2',
+              role: 'MEMBER',
+              joined_at: new Date().toISOString(),
+              is_active: true,
+              voting_rights: true,
+              user: {
+                id: 'demo-user-2',
+                name: 'Peter Mwangi',
+                phone: '254700333444',
+              },
+            },
+          },
+        ],
+      } as ContributionCycle,
+    ];
+  };
 
   const fetchCycles = async () => {
     if (!activeChama) return;
     setIsLoading(true);
+    setError('');
     try {
       const response = await api.get(`/chamas/${activeChama.id}/cycles`);
       setCycles(response.data);
     } catch (error) {
       console.error('Failed to fetch contribution cycles', error);
+      if (bypassAuth) {
+        setCycles(getDemoCycles());
+      } else {
+        setError('Unable to load contributions. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +216,19 @@ const ContributionsPage: React.FC = () => {
           <div className="space-y-4">
             <Card className="h-64 animate-pulse bg-muted/50 border-none" />
           </div>
+        ) : error ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center h-64 text-center">
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+                <Wallet className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Contributions unavailable</h3>
+              <p className="text-muted-foreground max-w-sm mt-1">{error}</p>
+              <Button className="mt-4" onClick={fetchCycles}>
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
         ) : cycles.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center h-64 text-center">

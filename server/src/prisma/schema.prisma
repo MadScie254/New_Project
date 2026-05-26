@@ -1,0 +1,301 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum ChamaRole {
+  CHAIRMAN
+  SECRETARY
+  TREASURER
+  MEMBER
+}
+
+enum CycleStatus {
+  UPCOMING
+  OPEN
+  CLOSED
+}
+
+enum ContributionStatus {
+  PAID
+  PENDING
+  LATE
+  WAIVED
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+  REJECTED
+}
+
+enum RepaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  APOLOGY
+}
+
+enum InvestmentStatus {
+  ACTIVE
+  MATURED
+  WITHDRAWN
+}
+
+// ─── MODELS ──────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  pin_hash    String
+  name        String
+  national_id String?
+  photo_url   String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  memberships    ChamaMember[]
+  notifications  Notification[]
+  created_chamas Chama[]        @relation("CreatedBy")
+
+  @@map("users")
+}
+
+model Chama {
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  frequency           String   @default("monthly") // weekly, biweekly, monthly
+  contribution_amount Decimal  @db.Decimal(12, 2)
+  start_date          DateTime
+  max_members         Int      @default(30)
+  constitution_url    String?
+  invite_code         String   @unique @default(cuid())
+  created_by_id       String
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  created_by    User                @relation("CreatedBy", fields: [created_by_id], references: [id])
+  members       ChamaMember[]
+  cycles        ContributionCycle[]
+  loans         Loan[]
+  investments   Investment[]
+  meetings      Meeting[]
+  fines         Fine[]
+  notifications Notification[]
+
+  @@map("chamas")
+}
+
+model ChamaMember {
+  id            String    @id @default(cuid())
+  chama_id      String
+  user_id       String
+  role          ChamaRole @default(MEMBER)
+  joined_at     DateTime  @default(now())
+  is_active     Boolean   @default(true)
+  voting_rights Boolean   @default(true)
+
+  chama         Chama               @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contributions Contribution[]
+  loans         Loan[]
+  attendances   MeetingAttendance[]
+  fines         Fine[]
+
+  @@unique([chama_id, user_id])
+  @@map("chama_members")
+}
+
+model ContributionCycle {
+  id        String      @id @default(cuid())
+  chama_id  String
+  due_date  DateTime
+  amount    Decimal     @db.Decimal(12, 2)
+  status    CycleStatus @default(UPCOMING)
+  cycle_number Int      @default(1)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  chama         Chama          @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+  contributions Contribution[]
+
+  @@map("contribution_cycles")
+}
+
+model Contribution {
+  id             String             @id @default(cuid())
+  cycle_id       String
+  member_id      String
+  amount_paid    Decimal            @db.Decimal(12, 2) @default(0)
+  paid_at        DateTime?
+  mpesa_ref      String?
+  status         ContributionStatus @default(PENDING)
+  penalty_amount Decimal            @db.Decimal(12, 2) @default(0)
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
+
+  cycle  ContributionCycle @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+  member ChamaMember       @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@unique([cycle_id, member_id])
+  @@map("contributions")
+}
+
+model Loan {
+  id               String     @id @default(cuid())
+  chama_id         String
+  applicant_id     String
+  amount           Decimal    @db.Decimal(12, 2)
+  purpose          String
+  status           LoanStatus @default(PENDING)
+  applied_at       DateTime   @default(now())
+  approved_at      DateTime?
+  disbursed_at     DateTime?
+  interest_rate    Decimal    @db.Decimal(5, 2) @default(10)
+  repayment_months Int        @default(3)
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+
+  chama      Chama           @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+  applicant  ChamaMember     @relation(fields: [applicant_id], references: [id], onDelete: Cascade)
+  repayments LoanRepayment[]
+
+  @@map("loans")
+}
+
+model LoanRepayment {
+  id        String          @id @default(cuid())
+  loan_id   String
+  amount    Decimal         @db.Decimal(12, 2)
+  due_date  DateTime
+  paid_at   DateTime?
+  mpesa_ref String?
+  status    RepaymentStatus @default(PENDING)
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  loan Loan @relation(fields: [loan_id], references: [id], onDelete: Cascade)
+
+  @@map("loan_repayments")
+}
+
+model Investment {
+  id            String           @id @default(cuid())
+  chama_id      String
+  name          String
+  institution   String
+  amount        Decimal          @db.Decimal(12, 2)
+  roi_expected  Decimal          @db.Decimal(5, 2) @default(0)
+  maturity_date DateTime?
+  status        InvestmentStatus @default(ACTIVE)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+
+  chama Chama @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+
+  @@map("investments")
+}
+
+model Meeting {
+  id           String        @id @default(cuid())
+  chama_id     String
+  scheduled_at DateTime
+  location     String?
+  agenda       String?       @db.Text
+  minutes      String?       @db.Text
+  status       MeetingStatus @default(SCHEDULED)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  chama      Chama               @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+  attendance MeetingAttendance[]
+
+  @@map("meetings")
+}
+
+model MeetingAttendance {
+  id          String           @id @default(cuid())
+  meeting_id  String
+  member_id   String
+  status      AttendanceStatus @default(ABSENT)
+  fine_amount Decimal          @db.Decimal(12, 2) @default(0)
+  created_at  DateTime         @default(now())
+
+  meeting Meeting     @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
+  member  ChamaMember @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@unique([meeting_id, member_id])
+  @@map("meeting_attendances")
+}
+
+model Fine {
+  id         String   @id @default(cuid())
+  chama_id   String
+  member_id  String
+  reason     String
+  amount     Decimal  @db.Decimal(12, 2)
+  paid       Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  chama  Chama       @relation(fields: [chama_id], references: [id], onDelete: Cascade)
+  member ChamaMember @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@map("fines")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  user_id   String
+  chama_id  String?
+  message   String
+  read      Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user  User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  chama Chama? @relation(fields: [chama_id], references: [id], onDelete: SetNull)
+
+  @@map("notifications")
+}
+
+model MpesaTransaction {
+  id                  String   @id @default(cuid())
+  checkout_request_id String   @unique
+  merchant_request_id String?
+  phone               String
+  amount              Decimal  @db.Decimal(12, 2)
+  account_ref         String
+  result_code         Int?
+  result_desc         String?
+  mpesa_receipt       String?
+  transaction_date    DateTime?
+  status              String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@map("mpesa_transactions")
+}

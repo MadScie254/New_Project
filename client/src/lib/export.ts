@@ -38,3 +38,33 @@ export function exportToExcel(data: any[], filename: string) {
   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
+
+/**
+ * Export data to CSV
+ */
+export function exportToCSV(data: any[], filename: string, columns?: { header: string; dataKey: string }[]) {
+  const keys = columns?.map((c) => c.dataKey) || Object.keys(data[0] || {});
+  const headers = columns?.map((c) => c.header) || keys;
+
+  const escapeValue = (value: any) => {
+    const str = value === null || value === undefined ? '' : String(value);
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const rows = [
+    headers.map(escapeValue).join(','),
+    ...data.map((row) => keys.map((key) => escapeValue(row[key])).join(',')),
+  ];
+
+  const csv = rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

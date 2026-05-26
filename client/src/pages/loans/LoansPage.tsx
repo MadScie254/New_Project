@@ -9,15 +9,18 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { CreditCard, PlusCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import PaymentModal from '../../components/payments/PaymentModal';
 
 const LoansPage: React.FC = () => {
   const { activeChama } = useChamaStore();
   const { user } = useAuthStore();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedLoanId, setSelectedLoanId] = useState<string>('');
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
-  useEffect(() => {
-    const fetchLoans = async () => {
+  const fetchLoans = async () => {
       if (!activeChama) return;
       setIsLoading(true);
       try {
@@ -32,6 +35,18 @@ const LoansPage: React.FC = () => {
 
     fetchLoans();
   }, [activeChama]);
+
+  const handleMakeRepayment = (loan: Loan) => {
+    if (!loan.repayments || loan.repayments.length === 0) return;
+    
+    // Find next pending repayment
+    const nextRepayment = loan.repayments.find(r => r.status === 'PENDING' || r.status === 'OVERDUE');
+    if (nextRepayment) {
+      setSelectedLoanId(nextRepayment.id);
+      setPaymentAmount(nextRepayment.amount);
+      setIsPaymentModalOpen(true);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -114,10 +129,18 @@ const LoansPage: React.FC = () => {
                         <p className="text-muted-foreground mb-1 text-xs">Term</p>
                         <p className="font-medium">{loan.repayment_months} months</p>
                       </div>
-                      <div className="col-span-2 mt-2">
-                        <Button variant="outline" className="w-full text-xs h-8">
+                      <div className="col-span-2 mt-2 flex gap-2">
+                        <Button variant="outline" className="flex-1 text-xs h-8">
                           View Details
                         </Button>
+                        {loan.status === 'DISBURSED' && loan.repayments?.some(r => r.status !== 'PAID') && (
+                          <Button 
+                            className="flex-1 text-xs h-8 bg-primary hover:bg-primary/90"
+                            onClick={() => handleMakeRepayment(loan)}
+                          >
+                            Make Repayment
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -136,6 +159,21 @@ const LoansPage: React.FC = () => {
             </Card>
         </TabsContent>
       </Tabs>
+
+      {isPaymentModalOpen && activeChama && user && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          amount={paymentAmount}
+          paymentType="LOAN_REPAYMENT"
+          referenceId={selectedLoanId}
+          chamaId={activeChama.id}
+          defaultPhone={user.phone}
+          onSuccess={() => {
+            fetchLoans();
+          }}
+        />
+      )}
     </div>
   );
 };

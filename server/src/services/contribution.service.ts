@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { notificationService } from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,7 @@ export class ContributionService {
         contributions: {
           include: {
             member: {
-              include: { user: { select: { name: true, phone: true } } },
+              include: { user: { select: { id: true, name: true, phone: true } } },
             },
           },
         },
@@ -78,7 +79,7 @@ export class ContributionService {
         contributions: {
           include: {
             member: {
-              include: { user: { select: { name: true } } },
+              include: { user: { select: { id: true, name: true } } },
             },
           },
         },
@@ -102,12 +103,18 @@ export class ContributionService {
       },
       include: {
         member: {
-          include: { user: { select: { name: true, phone: true } } },
+          include: { user: { select: { id: true, name: true, phone: true } } },
         },
         cycle: {
           include: { chama: { select: { name: true } } },
         },
       },
+    });
+
+    await notificationService.notifyUser({
+      userId: contribution.member.user.id,
+      chamaId: contribution.cycle.chama_id,
+      message: `Payment received for Cycle ${contribution.cycle.cycle_number} (${contribution.cycle.chama.name}). Amount: KES ${Number(amount).toLocaleString()}.`,
     });
 
     return contribution;

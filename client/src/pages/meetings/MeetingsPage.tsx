@@ -12,16 +12,45 @@ const MeetingsPage: React.FC = () => {
   const { activeChama } = useChamaStore();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+
+  const getDemoMeetings = (): Meeting[] => [
+    {
+      id: 'demo-meeting-1',
+      chama_id: activeChama?.id || 'demo-chama',
+      scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
+      location: 'Community Hall',
+      agenda: JSON.stringify([{ item: 'Monthly contributions' }, { item: 'Loan approvals' }]),
+      minutes: undefined,
+      status: 'SCHEDULED',
+    },
+    {
+      id: 'demo-meeting-2',
+      chama_id: activeChama?.id || 'demo-chama',
+      scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+      location: 'Online',
+      agenda: JSON.stringify([{ item: 'Budget review' }]),
+      minutes: 'Minutes recorded',
+      status: 'COMPLETED',
+    },
+  ];
 
   useEffect(() => {
     const fetchMeetings = async () => {
       if (!activeChama) return;
       setIsLoading(true);
+      setError('');
       try {
         const response = await api.get(`/chamas/${activeChama.id}/meetings`);
         setMeetings(response.data);
       } catch (error) {
         console.error('Failed to fetch meetings', error);
+        if (bypassAuth) {
+          setMeetings(getDemoMeetings());
+        } else {
+          setError('Unable to load meetings. Please try again.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -51,6 +80,19 @@ const MeetingsPage: React.FC = () => {
 
       {isLoading ? (
         <Card className="h-48 animate-pulse bg-muted/50 border-none" />
+      ) : error ? (
+        <Card className="border-dashed">
+          <CardContent className="p-6 text-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CalendarIcon className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Meetings unavailable</h3>
+            <p className="text-muted-foreground mt-1">{error}</p>
+            <Button className="mt-4" onClick={() => setMeetings([])}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {/* Upcoming Meeting */}

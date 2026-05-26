@@ -6,6 +6,7 @@ import AppLayout from './components/layout/AppLayout';
 // Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import OTPPage from './pages/auth/OTPPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ContributionsPage from './pages/contributions/ContributionsPage';
 import LoansPage from './pages/loans/LoansPage';
@@ -29,6 +30,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/otp" element={<OTPPage />} />
         
         <Route path="/" element={
           <ProtectedRoute>

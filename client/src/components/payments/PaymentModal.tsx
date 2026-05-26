@@ -175,7 +175,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <DialogFooter className="flex-col sm:flex-row gap-2 mt-6">
-              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              <Button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+              >
                 Cancel
               </Button>
               <Button type="button" onClick={handlePay} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
@@ -206,7 +210,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             {/* Dev bypass for sandbox */}
             {import.meta.env.MODE === 'development' && (
-              <Button variant="ghost" size="sm" onClick={handleSimulateSuccess} className="mt-8 text-xs text-muted-foreground hover:text-emerald-600">
+              <Button
+                onClick={handleSimulateSuccess}
+                className="mt-8 text-xs text-muted-foreground hover:text-emerald-600 hover:bg-transparent"
+              >
                 (Dev) Simulate Success
               </Button>
             )}
@@ -238,7 +245,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               {errorMsg}
             </p>
             <div className="flex gap-3 w-full mt-6">
-              <Button variant="outline" onClick={onClose} className="flex-1">
+              <Button
+                onClick={onClose}
+                className="flex-1 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+              >
                 Close
               </Button>
               <Button onClick={() => setStep('DETAILS')} className="flex-1">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2, Smartphone, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../../lib/api';
 import { formatKES } from '../../lib/formatters';
@@ -19,6 +19,18 @@ interface PaymentModalProps {
 }
 
 type PaymentStep = 'DETAILS' | 'PROCESSING' | 'SUCCESS' | 'ERROR';
+
+interface StkPayload {
+  phone: string;
+  amount: number;
+  accountRef: string;
+  contributionId?: string;
+  repaymentId?: string;
+}
+
+const isAxiosLikeError = (error: unknown): error is { response?: { data?: { error?: string } } } => {
+  return typeof error === 'object' && error !== null && 'response' in error;
+};
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
@@ -37,18 +49,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Reset state when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const resetId = window.setTimeout(() => {
       setStep('DETAILS');
       setPhone(defaultPhone.replace(/^\+/, ''));
       setCheckoutRequestId(null);
       setErrorMsg('');
-    }
+    }, 0);
+
+    return () => window.clearTimeout(resetId);
   }, [isOpen, defaultPhone]);
 
   // Polling for status when in processing step
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-    let timeoutId: NodeJS.Timeout;
+    let pollInterval: ReturnType<typeof setInterval> | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     if (step === 'PROCESSING' && checkoutRequestId) {
       pollInterval = setInterval(async () => {
@@ -67,7 +82,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             setStep('ERROR');
             clearInterval(pollInterval);
           }
-        } catch (error) {
+        } catch {
           // Just keep polling if error is 404 (not callback received yet)
           // or fail after timeout
         }
@@ -94,7 +109,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMsg('');
     
     try {
-      const payload: any = {
+      const payload: StkPayload = {
         phone: phone.startsWith('254') ? phone : phone.startsWith('0') ? `254${phone.substring(1)}` : `254${phone}`,
         amount,
         accountRef: `Chama ${chamaId.substring(0, 8)}`,
@@ -109,9 +124,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       const response = await api.post('/mpesa/stkpush', payload);
 
       setCheckoutRequestId(response.data.checkoutRequestId);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = isAxiosLikeError(error) ? error.response?.data?.error : undefined;
       console.error('STK Push Error:', error);
-      setErrorMsg(error.response?.data?.error || 'Failed to initiate payment.');
+      setErrorMsg(message || 'Failed to initiate payment.');
       setStep('ERROR');
     }
   };
@@ -123,7 +139,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -149,7 +165,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <Input 
                 id="phone" 
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
                 placeholder="2547XXXXXXXX"
                 className="text-lg tracking-wider font-medium h-12"
               />
@@ -189,7 +205,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             {/* Dev bypass for sandbox */}
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.MODE === 'development' && (
               <Button variant="ghost" size="sm" onClick={handleSimulateSuccess} className="mt-8 text-xs text-muted-foreground hover:text-emerald-600">
                 (Dev) Simulate Success
               </Button>

@@ -211,7 +211,7 @@ export class LoanService {
     });
 
     if (loan) {
-      const allPaid = loan.repayments.every((r) => r.status === 'PAID');
+      const allPaid = loan.repayments.every((r: any) => r.status === 'PAID');
       if (allPaid) {
         await prisma.loan.update({
           where: { id: loan.id },

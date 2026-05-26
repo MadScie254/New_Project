@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useChamaStore } from '../../store/chama.store';
 import api from '../../lib/api';
 import { ChamaMember } from '../../types';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, MoreVertical, Shield } from 'lucide-react';
 import { getInitials } from '../../lib/formatters';
 

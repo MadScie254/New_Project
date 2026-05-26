@@ -3,9 +3,9 @@ import { useChamaStore } from '../../store/chama.store';
 import api from '../../lib/api';
 import { Investment } from '../../types';
 import { formatKES, formatDate } from '../../lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Briefcase, TrendingUp, PieChart, Plus } from 'lucide-react';
 
 const InvestmentsPage: React.FC = () => {

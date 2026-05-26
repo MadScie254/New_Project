@@ -3,9 +3,9 @@ import { useChamaStore } from '../../store/chama.store';
 import api from '../../lib/api';
 import { Meeting } from '../../types';
 import { formatDate } from '../../lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, MapPin, Users, FileText, ChevronRight } from 'lucide-react';
 
 const MeetingsPage: React.FC = () => {

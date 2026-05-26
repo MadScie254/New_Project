@@ -5,10 +5,10 @@ import api from '../../lib/api';
 import { ContributionCycle, Contribution } from '../../types';
 import { formatKES, formatDate, getInitials } from '../../lib/formatters';
 import { exportToPDF, exportToExcel, exportToCSV } from '../../lib/export';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Download, CreditCard, ChevronDown, Wallet } from 'lucide-react';
 import PaymentModal from '../../components/payments/PaymentModal';
 

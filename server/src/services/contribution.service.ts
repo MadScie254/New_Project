@@ -69,7 +69,7 @@ export class ContributionService {
         cycle_number: cycleNumber,
         status: new Date(dueDate) > new Date() ? 'UPCOMING' : 'OPEN',
         contributions: {
-          create: members.map((m) => ({
+          create: members.map((m: any) => ({
             member_id: m.id,
             status: 'PENDING',
           })),
@@ -157,19 +157,19 @@ export class ContributionService {
     });
 
     const totalPaid = contributions
-      .filter((c) => c.status === 'PAID')
-      .reduce((sum, c) => sum + Number(c.amount_paid), 0);
+      .filter((c: any) => c.status === 'PAID')
+      .reduce((sum: number, c: any) => sum + Number(c.amount_paid), 0);
 
     const totalPenalties = contributions
-      .reduce((sum, c) => sum + Number(c.penalty_amount), 0);
+      .reduce((sum: number, c: any) => sum + Number(c.penalty_amount), 0);
 
-    const paidCount = contributions.filter((c) => c.status === 'PAID').length;
-    const lateCount = contributions.filter((c) => c.status === 'LATE').length;
-    const pendingCount = contributions.filter((c) => c.status === 'PENDING').length;
+    const paidCount = contributions.filter((c: any) => c.status === 'PAID').length;
+    const lateCount = contributions.filter((c: any) => c.status === 'LATE').length;
+    const pendingCount = contributions.filter((c: any) => c.status === 'PENDING').length;
 
     // Calculate streak
     const sortedContributions = contributions
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     let streak = 0;
     for (const c of sortedContributions) {

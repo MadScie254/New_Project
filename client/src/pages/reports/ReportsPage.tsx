@@ -3,9 +3,10 @@ import { useChamaStore } from '../../store/chama.store';
 import api from '../../lib/api';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../lib/export';
 import { formatKES } from '../../lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Download, FileText, PieChart, BarChart3, ShieldAlert } from 'lucide-react';
 
 interface MonthlyReport {
@@ -224,12 +225,7 @@ const ReportsPage: React.FC = () => {
                       <span className="text-muted-foreground">{item.label}</span>
                       <span className="font-medium">{formatKES(item.value)}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-muted">
-                      <div
-                        className="h-2 rounded-full bg-primary"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+                    <Progress value={percentage} className="h-2" />
                   </div>
                 );
               })}

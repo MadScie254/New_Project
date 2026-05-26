@@ -4,10 +4,10 @@ import { useAuthStore } from '../../store/auth.store';
 import api from '../../lib/api';
 import { Loan } from '../../types';
 import { formatKES, formatDate } from '../../lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, PlusCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import PaymentModal from '../../components/payments/PaymentModal';
 
